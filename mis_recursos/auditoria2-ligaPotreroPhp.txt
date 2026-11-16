@@ -1,0 +1,58 @@
+# Resumen de auditoría — Liga Potrero PHP
+
+## Conclusión
+
+La revisión estática detectó un riesgo importante de control de acceso: las rutas administrativas y las operaciones de escritura no parecen exigir autenticación. Se recomienda corregir este punto antes de publicar la aplicación.
+
+## Hallazgos
+
+| Prioridad | Hallazgo | Referencias |
+|---|---|---|
+| Alta | El panel y las API de escritura no aplican controles de acceso visibles. Esto incluye guardar, eliminar y subir imágenes. | [`public/index.php`](./public/index.php), [`includes/funciones.php`](./includes/funciones.php), [`controllers/ApiController.php`](./controllers/ApiController.php) |
+| Media | El modelo construye consultas SQL concatenando valores y usando `addslashes`, en lugar de parámetros preparados. | [`models/ActiveRecord.php`](./models/ActiveRecord.php) |
+| Media | Si faltan variables de entorno, la conexión intenta usar `root` con contraseña vacía. | [`includes/database.php`](./includes/database.php) |
+| Media | Los errores de conexión de PDO se muestran directamente en la respuesta. | [`includes/database.php`](./includes/database.php) |
+| Baja | Las rutas inexistentes muestran un mensaje, pero no establecen el estado HTTP 404. | [`Router.php`](./Router.php) |
+| Precaución | El volcado SQL contiene datos de jugadores y sentencias `DROP TABLE`; debe mantenerse fuera de la raíz web y manejarse con cuidado. | [`mis_recursos/liga_potrero_php.sql`](./mis_recursos/liga_potrero_php.sql) |
+
+## Recomendaciones prioritarias
+
+1. Exigir autenticación y autorización en todas las rutas administrativas y de escritura, incluidas las de imágenes.
+2. Reemplazar las consultas SQL concatenadas por consultas preparadas.
+3. Exigir credenciales explícitas en producción y devolver mensajes genéricos ante errores de conexión.
+4. Añadir pruebas de acceso anónimo y de permisos para operaciones de creación, edición, eliminación y subida de imágenes.
+5. Evitar publicar el volcado SQL y revisar su contenido antes de compartirlo.
+
+## Aspectos positivos observados
+
+- La subida de imágenes limita tamaño y dimensiones, valida el tipo de archivo y genera nombres aleatorios.
+- La API restringe los campos aceptados mediante listas permitidas.
+- PDO está configurado para lanzar excepciones ante errores de base de datos.
+
+## Alcance
+
+Este resumen se basa en una revisión estática de rutas, controladores, modelos, configuración y el volcado SQL. No se modificaron ni ejecutaron pruebas contra la aplicación, y no se verificó la configuración del servidor o de la base de datos en funcionamiento.
+
+
+***********************************************************************************************************************************************************************************************
+
+Auditoría de Liga Potrero PHP
+Conclusión: no recomendaría publicar la aplicación tal como está. El problema más urgente es que las páginas administrativas y las operaciones de escritura no tienen controles de acceso efectivos. Esta revisión fue estática: no modifiqué archivos ni ejecuté pruebas o validaciones en tiempo de ejecución.
+
+Prioridad	Hallazgo	Evidencia e impacto
+Alta	Panel y API de administración accesibles sin autenticación	Se registran rutas /admin/* y operaciones POST para guardar, eliminar y subir imágenes en public/index.php:50, public/index.php:62 y public/index.php:120. Aunque existe isAdmin() en includes/funciones.php:15, no se aplica en las rutas ni en los controladores revisados. En consecuencia, la aplicación no exige iniciar sesión para usar esas funciones; una persona que alcance el servicio podría modificar o borrar datos y reemplazar imágenes.
+Media	Consultas SQL construidas con concatenación y addslashes	Las operaciones de creación y actualización interpolan valores en las consultas en models/ActiveRecord.php:137 y models/ActiveRecord.php:159; también existen consultas genéricas en el modelo. No confirmé una explotación directa en la configuración actual, pero addslashes no reemplaza las consultas preparadas y hace que la seguridad dependa de la configuración del motor.
+Media	Credenciales predeterminadas inseguras si falta configuración	En includes/database.php:6 y includes/database.php:7, si no están configuradas las variables de entorno, se intenta conectar con root y contraseña vacía. Eso puede facilitar una configuración accidentalmente permisiva fuera del entorno local.
+Media	Se expone el detalle de errores de conexión	includes/database.php:24 imprime directamente el mensaje de la excepción de PDO. Si falla la conexión, la respuesta podría revelar detalles internos del servidor o de la configuración.
+Baja	Las rutas inexistentes no devuelven un estado HTTP 404	El router muestra un mensaje, pero no establece el código de respuesta en Router.php:36. Esto dificulta el manejo correcto de errores por clientes, monitores y motores de búsqueda.
+Aspectos positivos observados
+Las subidas de imágenes tienen límites de tamaño y dimensiones, verifican el tipo MIME y generan nombres aleatorios; ver models/ImagenSubida.php:10 y models/ImagenSubida.php:41.
+Los datos aceptados por la API se filtran mediante listas de campos permitidos en controllers/ApiController.php:55.
+La conexión configura PDO para lanzar excepciones, lo que permite detectar errores de base de datos, aunque conviene no mostrar sus detalles al cliente.
+Recomendaciones prioritarias
+Aplicar autenticación y autorización en todas las rutas administrativas y de escritura, incluidas las de imágenes; no depender de ocultar enlaces o pantallas.
+Sustituir la concatenación SQL por consultas preparadas y parámetros.
+Requerir configuración explícita de base de datos en producción, sin valores predeterminados de root/contraseña vacía, y mostrar al cliente errores genéricos.
+Añadir pruebas que comprueben, como mínimo, el acceso anónimo y los permisos para crear, modificar, eliminar y subir imágenes.
+Revisar la distribución del volcado SQL: contiene datos de jugadores y sentencias DROP TABLE, por ejemplo en mis_recursos/liga_potrero_php.sql:30 y mis_recursos/liga_potrero_php.sql:230. Mantenerlo fuera de cualquier raíz web pública y tratarlo como un archivo con datos y operaciones destructivas.
+Alcance: analicé rutas, controladores, acceso a datos, configuración, subida de imágenes y el volcado SQL disponible. No inspeccioné valores de secretos ni comprobé la configuración del servidor o de la base de datos en ejecución.

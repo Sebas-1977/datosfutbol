@@ -1,0 +1,1 @@
+comando para crear usuarios: php bin/crear-admin.php

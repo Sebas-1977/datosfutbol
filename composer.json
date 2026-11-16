@@ -1,0 +1,23 @@
+{
+    "name": "seba/datosfutbol",
+    "description": "Proyecto php, mvc, poo, js, ajax, mysql, tailwind css",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Sebastian Rodriguez",
+            "email": "sebasrodridanu@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "MVC\\" : "./",
+            "Controllers\\" : "./controllers",
+            "Model\\" : "./models",
+            "Classes\\" : "./classes"
+        }
+    },
+    "require": {
+        "vlucas/phpdotenv": "^5.8",
+        "phpmailer/phpmailer": "^7.1"
+    }
+}

@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Si el archivo o directorio existe físicamente, servirlo directamente
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # De lo contrario, enrutar todo a index.php
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Ocultar firmas del servidor
+ServerSignature Off
